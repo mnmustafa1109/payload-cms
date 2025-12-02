@@ -1,43 +1,46 @@
-version: '3'
-
 services:
+  # --------------------------------------------------------------------------
+  # 1. PostgreSQL Database Service
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:alpine
+    restart: always
+    environment:
+      # These variables define the credentials for the database,
+      # which are referenced in the POSTGRES_URL below.
+      POSTGRES_USER: payloaduser
+      POSTGRES_PASSWORD: 7EcPCmsESEP07dO0N1umZlUIkuDc7wkx
+      POSTGRES_DB: payload-db
+    volumes:
+      # This volume ensures your database data persists even if the container is stopped or removed.
+      - postgres_data:/var/lib/postgresql
   payload:
-    image: node:18-alpine
-    ports:
-      - '3000:3000'
-    volumes:
-      - .:/home/node/app
-      - node_modules:/home/node/app/node_modules
-    working_dir: /home/node/app/
-    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm dev"
+    build: . # Builds the image using the Dockerfile in the current directory
+    restart: always
     depends_on:
-      - mongo
-      # - postgres
-    env_file:
-      - .env
-
-  # Ensure your DATABASE_URI uses 'mongo' as the hostname ie. mongodb://mongo/my-db-name
-  mongo:
-    image: mongo:latest
+      - postgres # Ensures the database container starts before the application container
     ports:
-      - '27017:27017'
-    command:
-      - --storageEngine=wiredTiger
-    volumes:
-      - data:/data/db
-    logging:
-      driver: none
-
-  # Uncomment the following to use postgres
-  # postgres:
-  #   restart: always
-  #   image: postgres:latest
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
+      # Maps the host port 53000 to the internal container port 3000 (where Payload runs)
+      - "53000:3000"
+    environment:
+      # Connection string uses the internal service name 'postgres' and the credentials defined above.
+      DATABASE_URI: postgres://payloaduser:7EcPCmsESEP07dO0N1umZlUIkuDc7wkx@postgres:5432/payload-db
+      PAYLOAD_SECRET: U8ABKYMRlO2NP6USUhOrucjfnptRVqOPMx8BsNlThu9
+      PAYLOAD_PUBLIC_SERVER_URL: https://payload.lyoko.studio:443
+      SEED_DB: "true" # Must be a string in YAML environments
+      S3_ENDPOINT: https://minio.lyoko.studio
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: payload
+      S3_SECRET_ACCESS_KEY: xtSq0EVBP1FONNxQwOhW2TgaZPT83gybLo65vWh7dVb
+      S3_BUCKET: payload-cms
+      NODE_TLS_REJECT_UNAUTHORIZED: "1"
+      SMTP_HOST: mail.lyoko.studio
+      SMTP_USER: contact@lyoko.studio
+      SMTP_PASS: "68,bMeLoW,{"
+    # Optional: If you need access to local Payload files (e.g., config changes)
+    # volumes:
+    #   - ./src:/home/node/app/src
 
 volumes:
-  data:
-  # pgdata:
-  node_modules:
+  # Named volume for persistent storage of PostgreSQL data
+  postgres_data:

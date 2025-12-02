@@ -67,8 +67,12 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
     media: Media;
+    'media-with-prefix': MediaWithPrefix;
+    'media-with-signed-downloads': MediaWithSignedDownload;
+    pages: Page;
+    users: User;
+    tenants: Tenant;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,15 +80,19 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'media-with-prefix': MediaWithPrefixSelect<false> | MediaWithPrefixSelect<true>;
+    'media-with-signed-downloads': MediaWithSignedDownloadsSelect<false> | MediaWithSignedDownloadsSelect<true>;
+    pages: PagesSelect<false> | PagesSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
+    tenants: TenantsSelect<false> | TenantsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   globals: {};
   globalsSelect: {};
@@ -117,10 +125,110 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-with-prefix".
+ */
+export interface MediaWithPrefix {
+  id: number;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-with-signed-downloads".
+ */
+export interface MediaWithSignedDownload {
+  id: number;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages".
+ */
+export interface Page {
+  id: number;
+  tenant?: (number | null) | Tenant;
+  title?: string | null;
+  slug?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tenants".
+ */
+export interface Tenant {
+  id: number;
+  name: string;
+  /**
+   * Used for domain-based tenant handling
+   */
+  domain?: string | null;
+  /**
+   * Used for url paths, example: /tenant-slug/page-slug
+   */
+  slug: string;
+  /**
+   * If checked, logging in is not required to read. Useful for building public pages.
+   */
+  allowPublicRead?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
+  password?: string | null;
+  roles?: ('super-admin' | 'user')[] | null;
+  username?: string | null;
+  tenants?:
+    | {
+        tenant: number | Tenant;
+        roles: ('tenant-admin' | 'tenant-viewer')[];
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -137,33 +245,13 @@ export interface User {
         expiresAt: string;
       }[]
     | null;
-  password?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: string;
+  id: number;
   key: string;
   data:
     | {
@@ -180,20 +268,36 @@ export interface PayloadKv {
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: string | User;
+        relationTo: 'media';
+        value: number | Media;
       } | null)
     | ({
-        relationTo: 'media';
-        value: string | Media;
+        relationTo: 'media-with-prefix';
+        value: number | MediaWithPrefix;
+      } | null)
+    | ({
+        relationTo: 'media-with-signed-downloads';
+        value: number | MediaWithSignedDownload;
+      } | null)
+    | ({
+        relationTo: 'pages';
+        value: number | Page;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'tenants';
+        value: number | Tenant;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -203,10 +307,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -226,7 +330,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -234,9 +338,83 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-with-prefix_select".
+ */
+export interface MediaWithPrefixSelect<T extends boolean = true> {
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-with-signed-downloads_select".
+ */
+export interface MediaWithSignedDownloadsSelect<T extends boolean = true> {
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pages_select".
+ */
+export interface PagesSelect<T extends boolean = true> {
+  tenant?: T;
+  title?: T;
+  slug?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  password?: T;
+  roles?: T;
+  username?: T;
+  tenants?:
+    | T
+    | {
+        tenant?: T;
+        roles?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -256,21 +434,15 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
+ * via the `definition` "tenants_select".
  */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
+export interface TenantsSelect<T extends boolean = true> {
+  name?: T;
+  domain?: T;
+  slug?: T;
+  allowPublicRead?: T;
   updatedAt?: T;
   createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
