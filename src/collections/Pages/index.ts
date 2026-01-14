@@ -8,7 +8,7 @@ export const Pages: CollectionConfig = {
   access: {
     create: isSuperAdmin,
     delete: isSuperAdmin,
-    read: isSuperAdmin,
+    read: ({ req }) => Boolean(req.user), // Allow any authenticated user to read pages
     update: isSuperAdmin,
   },
   admin: {

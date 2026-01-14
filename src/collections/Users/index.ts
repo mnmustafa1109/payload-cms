@@ -35,7 +35,7 @@ const Users: CollectionConfig = {
   access: {
     create: isSuperAdmin,
     delete: isSuperAdmin,
-    read: isSuperAdmin,
+    read: ({ req }) => Boolean(req.user), // Allow any authenticated user to read users
     update: isSuperAdmin,
   },
   admin: {

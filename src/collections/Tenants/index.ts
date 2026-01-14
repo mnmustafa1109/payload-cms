@@ -8,7 +8,7 @@ export const Tenants: CollectionConfig = {
   access: {
     create: isSuperAdmin,
     delete: isSuperAdmin,
-    read: isSuperAdmin,
+    read: ({ req }) => Boolean(req.user), // Allow any authenticated user to read tenants
     update: isSuperAdmin,
   },
   admin: {
