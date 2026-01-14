@@ -1,6 +1,6 @@
 import type { Access } from 'payload'
 
-import { isSuperAdmin } from '../../../access/isSuperAdmin'
+import { isSuperAdminFunction } from '../../../access/isSuperAdmin'
 
 export const filterByTenantRead: Access = (args) => {
   // Allow public tenants to be read by anyone
@@ -20,7 +20,7 @@ export const canMutateTenant: Access = ({ req }) => {
     return false
   }
 
-  if (isSuperAdmin(req.user)) {
+  if (isSuperAdminFunction(req.user)) {
     return true
   }
 

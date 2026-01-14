@@ -2,7 +2,7 @@ import type { Access } from 'payload'
 
 import type { Tenant, User } from '../../../payload-types'
 
-import { isSuperAdmin } from '../../../access/isSuperAdmin'
+import { isSuperAdminFunction } from '../../../access/isSuperAdmin'
 import { getUserTenantIDs } from '../../../utilities/getUserTenantIDs'
 
 export const createAccess: Access<User> = ({ req }) => {
@@ -10,11 +10,11 @@ export const createAccess: Access<User> = ({ req }) => {
     return false
   }
 
-  if (isSuperAdmin(req.user)) {
+  if (isSuperAdminFunction(req.user)) {
     return true
   }
 
-  if (!isSuperAdmin(req.user) && req.data?.roles?.includes('super-admin')) {
+  if (!isSuperAdminFunction(req.user) && req.data?.roles?.includes('super-admin')) {
     return false
   }
 

@@ -1,10 +1,10 @@
 import type { Access } from 'payload'
 import { User } from '../payload-types'
 
-export const isSuperAdminAccess: Access = ({ req }): boolean => {
-  return isSuperAdmin(req.user)
+export const isSuperAdmin: Access = ({ req }): boolean => {
+  return Boolean(req.user?.roles?.includes('super-admin'))
 }
 
-export const isSuperAdmin = (user: User | null): boolean => {
+export const isSuperAdminFunction = (user: User | null): boolean => {
   return Boolean(user?.roles?.includes('super-admin'))
 }

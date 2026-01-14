@@ -20,7 +20,7 @@ import { Posts } from './collections/Blog'
 import { Categories } from './collections/Category'
 
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
-import { isSuperAdmin } from './access/isSuperAdmin'
+import { isSuperAdmin, isSuperAdminFunction } from './access/isSuperAdmin'
 import type { Config } from './payload-types'
 import { getUserTenantIDs } from './utilities/getUserTenantIDs'
 
@@ -105,7 +105,7 @@ export default buildConfig({
         access: {
           read: () => true,
           update: ({ req }) => {
-            if (isSuperAdmin(req.user)) {
+            if (isSuperAdminFunction(req.user)) {
               return true
             }
             return getUserTenantIDs(req.user).length > 0
@@ -115,7 +115,7 @@ export default buildConfig({
       tenantsArrayField: {
         includeDefaultField: false,
       },
-      userHasAccessToAllTenants: (user) => isSuperAdmin(user),
+      userHasAccessToAllTenants: (user) => isSuperAdminFunction(user),
     }),
   ],
   email: nodemailerAdapter({

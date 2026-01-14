@@ -5,7 +5,7 @@ import { readAccess } from './access/read'
 import { updateAndDeleteAccess } from './access/updateAndDelete'
 import { externalUsersLogin } from './endpoints/externalUsersLogin'
 import { ensureUniqueUsername } from './hooks/ensureUniqueUsername'
-import { isSuperAdmin } from '@/access/isSuperAdmin'
+import { isSuperAdmin, isSuperAdminFunction } from '@/access/isSuperAdmin'
 import { setCookieBasedOnDomain } from './hooks/setCookieBasedOnDomain'
 import { tenantsArrayField } from '@payloadcms/plugin-multi-tenant/fields'
 
@@ -24,18 +24,7 @@ const defaultTenantArrayField = tenantsArrayField({
       options: ['tenant-admin', 'tenant-viewer'],
       required: true,
       access: {
-        update: ({ req }) => {
-          const { user } = req
-          if (!user) {
-            return false
-          }
-
-          if (isSuperAdmin(user)) {
-            return true
-          }
-
-          return true
-        },
+        update: ({ req }) => isSuperAdminFunction(req.user),
       },
     },
   ],
@@ -44,10 +33,10 @@ const defaultTenantArrayField = tenantsArrayField({
 const Users: CollectionConfig = {
   slug: 'users',
   access: {
-    create: createAccess,
-    delete: updateAndDeleteAccess,
-    read: readAccess,
-    update: updateAndDeleteAccess,
+    create: isSuperAdmin,
+    delete: isSuperAdmin,
+    read: isSuperAdmin,
+    update: isSuperAdmin,
   },
   admin: {
     useAsTitle: 'email',
@@ -72,7 +61,7 @@ const Users: CollectionConfig = {
             return true
           }
 
-          return isSuperAdmin(user)
+          return isSuperAdminFunction(user)
         },
       },
     },
@@ -87,7 +76,7 @@ const Users: CollectionConfig = {
       options: ['super-admin', 'user'],
       access: {
         update: ({ req }) => {
-          return isSuperAdmin(req.user)
+          return isSuperAdminFunction(req.user)
         },
       },
     },

@@ -3,6 +3,21 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  access: {
+    // Allow public read access only for published posts
+    read: ({ req }) => {
+      // If user is authenticated, they can read all posts
+      if (req.user) {
+        return true;
+      }
+      // For unauthenticated users, only allow read access for published posts
+      return {
+        status: {
+          equals: 'published'
+        }
+      };
+    },
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'author', 'category', 'publishedDate', 'status'],
