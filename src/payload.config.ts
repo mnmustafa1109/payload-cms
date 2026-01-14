@@ -16,6 +16,8 @@ import { MediaWithSignedDownloads } from './collections/MediaWithSignedDownloads
 import { Pages } from './collections/Pages'
 import { Tenants } from './collections/Tenants'
 import Users from './collections/Users'
+import { Posts } from './collections/Blog'
+import { Categories } from './collections/Category'
 
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
 import { isSuperAdmin } from './access/isSuperAdmin'
@@ -53,7 +55,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Media, MediaWithPrefix, MediaWithSignedDownloads, Pages, Users, Tenants],
+  collections: [Media, MediaWithPrefix, MediaWithSignedDownloads, Pages, Users, Tenants, Posts, Categories],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
