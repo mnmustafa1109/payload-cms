@@ -174,6 +174,17 @@ export const Posts: CollectionConfig = {
       name: 'tenant',
       type: 'relationship',
       relationTo: 'tenants',
+      defaultValue: ({ user }) => {
+        // Auto-select the user's first tenant if they have one and are not a super admin
+        if (user && !user.roles?.includes('super-admin')) {
+          const firstTenant = user.tenants?.[0]?.tenant;
+          if (firstTenant) {
+            return typeof firstTenant === 'object' ? firstTenant.id : firstTenant;
+          }
+        }
+        // Super admins or users without tenants will have no default
+        return undefined;
+      },
       admin: {
         description: 'Associate this post with a specific tenant',
       },
