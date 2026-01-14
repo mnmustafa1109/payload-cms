@@ -4,19 +4,66 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 export const Posts: CollectionConfig = {
   slug: 'posts',
   access: {
-    // Allow public read access only for published posts
-    read: ({ req }) => {
-      // If user is authenticated, they can read all posts
-      if (req.user) {
+    create: ({ req }) => {
+      // Super admins can create posts without restriction
+      if (req.user && req.user.roles?.includes('super-admin')) {
         return true;
       }
-      // For unauthenticated users, only allow read access for published posts
-      return {
-        status: {
-          equals: 'published'
-        }
-      };
+
+      // For other users, we'll add the tenant automatically in beforeChange hook
+      return true;
     },
+    read: ({ req }) => {
+      // Super admins can read all posts
+      if (req.user && req.user.roles?.includes('super-admin')) {
+        return true;
+      }
+
+      // For authenticated users who are not super admins, apply tenant filtering
+      if (req.user) {
+        // If the user belongs to specific tenants, only show posts from those tenants
+        const userTenantIds = req.user.tenants?.map(t =>
+          typeof t.tenant === 'object' ? t.tenant.id : t.tenant
+        ).filter(id => id);
+
+        if (userTenantIds && userTenantIds.length > 0) {
+          // Show posts from the user's tenants
+          return {
+            tenant: {
+              in: userTenantIds
+            }
+          };
+        } else {
+          // If user has no tenant associations, show no posts
+          return false;
+        }
+      } else {
+        // For unauthenticated users, deny access
+        return false;
+      }
+    },
+  },
+  hooks: {
+    beforeChange: [
+      ({ req, data, operation }) => {
+        // If the user is not a super admin and creating or updating a post
+        if (req.user && !req.user.roles?.includes('super-admin')) {
+          // Get the first tenant of the user (if any)
+          const userTenant = req.user.tenants?.[0]?.tenant;
+
+          // If user has a tenant, assign it to the post
+          if (userTenant) {
+            // Normalize tenant ID whether it's an object or ID
+            const tenantId = typeof userTenant === 'object' ? userTenant.id : userTenant;
+            return {
+              ...data,
+              tenant: tenantId
+            };
+          }
+        }
+        return data;
+      }
+    ]
   },
   admin: {
     useAsTitle: 'title',
@@ -121,6 +168,14 @@ export const Posts: CollectionConfig = {
       type: 'number',
       admin: {
         description: 'Estimated reading time in minutes',
+      },
+    },
+    {
+      name: 'tenant',
+      type: 'relationship',
+      relationTo: 'tenants',
+      admin: {
+        description: 'Associate this post with a specific tenant',
       },
     },
   ],
