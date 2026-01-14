@@ -293,6 +293,10 @@ export interface Post {
    * Estimated reading time in minutes
    */
   readingTime?: number | null;
+  /**
+   * Associate this post with a specific tenant
+   */
+  tenant?: (number | null) | Tenant;
   updatedAt: string;
   createdAt: string;
 }
@@ -535,6 +539,7 @@ export interface PostsSelect<T extends boolean = true> {
   metaDescription?: T;
   tags?: T;
   readingTime?: T;
+  tenant?: T;
   updatedAt?: T;
   createdAt?: T;
 }
