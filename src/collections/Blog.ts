@@ -1,6 +1,11 @@
 import type { CollectionConfig } from 'payload'
 // 1. IMPORT ADDED HERE
-import { lexicalEditor, lexicalHTML } from '@payloadcms/richtext-lexical'
+
+import { 
+  lexicalEditor, 
+  lexicalHTML, 
+  HTMLConverterFeature 
+} from '@payloadcms/richtext-lexical'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -113,17 +118,16 @@ export const Posts: CollectionConfig = {
     {
       name: 'content',
       type: 'richText',
-      // 2. ENABLE THE HTML CONVERTER FEATURE HERE
       editor: lexicalEditor({
         features: ({ defaultFeatures }) => [
           ...defaultFeatures,
+          // Now this will work because it is imported above
           HTMLConverterFeature({}),
         ],
       }),
       required: true,
       localized: true,
     },
-    // This takes the 'content' field and outputs it as HTML in a field named 'contentHtml'
     lexicalHTML('content', { name: 'contentHtml' }),
     {
       name: 'featuredImage',
