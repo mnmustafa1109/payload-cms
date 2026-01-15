@@ -113,7 +113,13 @@ export const Posts: CollectionConfig = {
     {
       name: 'content',
       type: 'richText',
-      editor: lexicalEditor(),
+      // 2. ENABLE THE HTML CONVERTER FEATURE HERE
+      editor: lexicalEditor({
+        features: ({ defaultFeatures }) => [
+          ...defaultFeatures,
+          HTMLConverterFeature({}),
+        ],
+      }),
       required: true,
       localized: true,
     },
