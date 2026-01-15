@@ -281,6 +281,7 @@ export interface Post {
     };
     [k: string]: unknown;
   };
+  contentHtml?: string | null;
   featuredImage?: (number | null) | Media;
   status: 'draft' | 'published' | 'archived';
   metaTitle?: string | null;
@@ -533,6 +534,7 @@ export interface PostsSelect<T extends boolean = true> {
   publishedDate?: T;
   excerpt?: T;
   content?: T;
+  contentHtml?: T;
   featuredImage?: T;
   status?: T;
   metaTitle?: T;

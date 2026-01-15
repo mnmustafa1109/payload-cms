@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { lexicalEditor } from '@payloadcms/richtext-lexical'
+// 1. IMPORT ADDED HERE
+import { lexicalEditor, lexicalHTML } from '@payloadcms/richtext-lexical'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -116,6 +117,8 @@ export const Posts: CollectionConfig = {
       required: true,
       localized: true,
     },
+    // This takes the 'content' field and outputs it as HTML in a field named 'contentHtml'
+    lexicalHTML('content', { name: 'contentHtml' }),
     {
       name: 'featuredImage',
       type: 'upload',
