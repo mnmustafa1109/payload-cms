@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { checkCollectionEnabled } from '@/access/checkCollectionEnabled'
 // 1. IMPORT ADDED HERE
 
 import { 
@@ -10,42 +11,48 @@ import {
 export const Posts: CollectionConfig = {
   slug: 'posts',
   access: {
-    create: ({ req }) => {
+    create: async ({ req }) => {
+      const isEnabled = await checkCollectionEnabled({ req, slug: 'posts' })
+      if (!isEnabled) return false
+
       // Super admins can create posts without restriction
       if (req.user && req.user.roles?.includes('super-admin')) {
-        return true;
+        return true
       }
 
       // For other users, we'll add the tenant automatically in beforeChange hook
-      return true;
+      return true
     },
-    read: ({ req }) => {
+    read: async ({ req }) => {
+      const isEnabled = await checkCollectionEnabled({ req, slug: 'posts' })
+      if (!isEnabled) return false
+
       // Super admins can read all posts
       if (req.user && req.user.roles?.includes('super-admin')) {
-        return true;
+        return true
       }
 
       // For authenticated users who are not super admins, apply tenant filtering
       if (req.user) {
         // If the user belongs to specific tenants, only show posts from those tenants
-        const userTenantIds = req.user.tenants?.map(t =>
-          typeof t.tenant === 'object' ? t.tenant.id : t.tenant
-        ).filter(id => id);
+        const userTenantIds = req.user.tenants
+          ?.map((t) => (typeof t.tenant === 'object' ? t.tenant.id : t.tenant))
+          .filter((id) => id)
 
         if (userTenantIds && userTenantIds.length > 0) {
           // Show posts from the user's tenants
           return {
             tenant: {
-              in: userTenantIds
-            }
-          };
+              in: userTenantIds,
+            },
+          }
         } else {
           // If user has no tenant associations, show no posts
-          return false;
+          return false
         }
       } else {
         // For unauthenticated users, deny access
-        return false;
+        return false
       }
     },
   },

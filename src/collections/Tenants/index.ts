@@ -37,6 +37,37 @@ export const Tenants: CollectionConfig = {
       required: true,
     },
     {
+      name: 'enabledCollections',
+      type: 'select',
+      hasMany: true,
+      options: [
+        {
+          label: 'Media',
+          value: 'media',
+        },
+        {
+          label: 'Pages',
+          value: 'pages',
+        },
+        {
+          label: 'Posts',
+          value: 'posts',
+        },
+        {
+          label: 'Categories',
+          value: 'categories',
+        },
+        {
+          label: 'Media with Prefix',
+          value: 'media-with-prefix',
+        },
+        {
+          label: 'Media with Signed Downloads',
+          value: 'media-with-signed-downloads',
+        },
+      ],
+    },
+    {
       name: 'allowPublicRead',
       type: 'checkbox',
       admin: {

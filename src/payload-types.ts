@@ -211,6 +211,9 @@ export interface Tenant {
    * Used for url paths, example: /tenant-slug/page-slug
    */
   slug: string;
+  enabledCollections?:
+    | ('media' | 'pages' | 'posts' | 'categories' | 'media-with-prefix' | 'media-with-signed-downloads')[]
+    | null;
   /**
    * If checked, logging in is not required to read. Useful for building public pages.
    */
@@ -518,6 +521,7 @@ export interface TenantsSelect<T extends boolean = true> {
   name?: T;
   domain?: T;
   slug?: T;
+  enabledCollections?: T;
   allowPublicRead?: T;
   updatedAt?: T;
   createdAt?: T;

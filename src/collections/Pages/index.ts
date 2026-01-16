@@ -2,13 +2,17 @@ import type { CollectionConfig } from 'payload'
 
 import { ensureUniqueSlug } from './hooks/ensureUniqueSlug'
 import { isSuperAdmin } from '@/access/isSuperAdmin'
+import { checkCollectionEnabled } from '@/access/checkCollectionEnabled'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
   access: {
     create: isSuperAdmin,
     delete: isSuperAdmin,
-    read: ({ req }) => Boolean(req.user), // Allow any authenticated user to read pages
+    read: async ({ req }) => {
+      if (!req.user) return false
+      return checkCollectionEnabled({ req, slug: 'pages' })
+    },
     update: isSuperAdmin,
   },
   admin: {
