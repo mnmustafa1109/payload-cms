@@ -55,6 +55,7 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
+  cors: '*',
   collections: [Media, MediaWithPrefix, MediaWithSignedDownloads, Pages, Users, Tenants, Posts, Categories],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
