@@ -26,8 +26,10 @@ export const Posts: CollectionConfig = {
       return true
     },
     read: async ({ req }) => {
-      const isEnabled = await checkCollectionEnabled({ req, slug: 'posts' })
-      if (!isEnabled) return false
+      if (req.user) {
+        const isEnabled = await checkCollectionEnabled({ req, slug: 'posts' })
+        if (!isEnabled) return false
+      }
 
       // Super admins can read all posts
       if (req.user && req.user.roles?.includes('super-admin')) {
