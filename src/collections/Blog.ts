@@ -1,5 +1,7 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Where } from 'payload'
 import { checkCollectionEnabled } from '@/access/checkCollectionEnabled'
+import { getTenantFromCookie } from '@payloadcms/plugin-multi-tenant/utilities'
+import { getCollectionIDType } from '@/utilities/getCollectionIDType'
 // 1. IMPORT ADDED HERE
 
 import { 
@@ -45,15 +47,37 @@ export const Posts: CollectionConfig = {
             tenant: {
               in: userTenantIds,
             },
-          }
+          } as Where
         } else {
           // If user has no tenant associations, show no posts
           return false
         }
-      } else {
-        // For unauthenticated users, deny access
-        return false
       }
+
+      // For unauthenticated users, allow published posts if a tenant is selected
+      const selectedTenant = getTenantFromCookie(
+        req.headers,
+        getCollectionIDType({ payload: req.payload, collectionSlug: 'tenants' }),
+      )
+
+      if (selectedTenant) {
+        return {
+          and: [
+            {
+              status: {
+                equals: 'published',
+              },
+            },
+            {
+              tenant: {
+                equals: selectedTenant,
+              },
+            },
+          ],
+        } as Where
+      }
+
+      return false
     },
   },
   hooks: {
