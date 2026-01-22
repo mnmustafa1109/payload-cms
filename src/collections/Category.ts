@@ -4,10 +4,7 @@ import { checkCollectionEnabled } from '@/access/checkCollectionEnabled'
 export const Categories: CollectionConfig = {
   slug: 'categories',
   access: {
-    read: async ({ req }) => {
-      if (!req.user) return false
-      return checkCollectionEnabled({ req, slug: 'categories' })
-    },
+    read: () => true,
   },
   admin: {
     useAsTitle: 'title',

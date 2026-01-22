@@ -13,7 +13,9 @@ const defaultTenantArrayField = tenantsArrayField({
   tenantsArrayFieldName: 'tenants',
   tenantsArrayTenantFieldName: 'tenant',
   tenantsCollectionSlug: 'tenants',
-  arrayFieldAccess: {},
+  arrayFieldAccess: {
+    read: ({ req }) => Boolean(req.user),
+  },
   tenantFieldAccess: {},
   rowFields: [
     {
@@ -35,7 +37,7 @@ const Users: CollectionConfig = {
   access: {
     create: isSuperAdmin,
     delete: isSuperAdmin,
-    read: ({ req }) => Boolean(req.user), // Allow any authenticated user to read users
+    read: () => true,
     update: isSuperAdmin,
   },
   admin: {
@@ -66,6 +68,18 @@ const Users: CollectionConfig = {
       },
     },
     {
+      name: 'email',
+      type: 'email',
+      access: {
+        read: ({ req, id }) => {
+          if (!req.user) return false
+          if (req.user.id === id) return true
+          return true // Authenticated users can see emails? Maybe just restrict to self or admin?
+          // For now, mirroring previous behavior: authenticated users could read all users.
+        },
+      },
+    },
+    {
       admin: {
         position: 'sidebar',
       },
@@ -75,6 +89,7 @@ const Users: CollectionConfig = {
       hasMany: true,
       options: ['super-admin', 'user'],
       access: {
+        read: ({ req }) => Boolean(req.user),
         update: ({ req }) => {
           return isSuperAdminFunction(req.user)
         },
