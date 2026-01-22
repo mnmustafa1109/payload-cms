@@ -25,7 +25,7 @@ export const Posts: CollectionConfig = {
       // For other users, we'll add the tenant automatically in beforeChange hook
       return true
     },
-    read: async ({ req, id }) => {
+    read: async ({ req }) => {
       const isEnabled = await checkCollectionEnabled({ req, slug: 'posts' })
       if (!isEnabled) return false
 
@@ -34,61 +34,37 @@ export const Posts: CollectionConfig = {
         return true
       }
 
-      // For authenticated users who are not super admins, apply tenant filtering
+      // Base condition: Published posts are accessible to EVERYONE (Global Public Access)
+      const conditions: Where[] = [
+        {
+          status: {
+            equals: 'published',
+          },
+        },
+      ]
+
+      // If user is authenticated and has tenants, allow access to their tenant's posts (including Drafts/Archived)
       if (req.user) {
-        // If the user belongs to specific tenants, only show posts from those tenants
         const userTenantIds = req.user.tenants
           ?.map((t) => (typeof t.tenant === 'object' ? t.tenant.id : t.tenant))
           .filter((id) => id)
 
         if (userTenantIds && userTenantIds.length > 0) {
-          // Show posts from the user's tenants
-          return {
+          conditions.push({
             tenant: {
               in: userTenantIds,
             },
-          } as Where
-        } else {
-          // If user has no tenant associations, show no posts
-          return false
+          })
         }
       }
 
-      // For unauthenticated users, allow published posts if a tenant is selected
-      const selectedTenant = getTenantFromCookie(
-        req.headers,
-        getCollectionIDType({ payload: req.payload, collectionSlug: 'tenants' }),
-      )
-
-      if (selectedTenant) {
-        return {
-          and: [
-            {
-              status: {
-                equals: 'published',
-              },
-            },
-            {
-              tenant: {
-                equals: selectedTenant,
-              },
-            },
-          ],
-        } as Where
-      }
-
-      // If no tenant context is available (e.g. direct API access),
-      // allow access to published posts ONLY if accessing a specific ID.
-      // This prevents listing all posts from all tenants publicly.
-      if (id) {
-        return {
-          status: {
-            equals: 'published',
-          },
-        } as Where
-      }
-
-      return false
+      // Combine with OR:
+      // 1. Post is Published (Anyone)
+      // OR
+      // 2. Post belongs to User's Tenant (Authenticated)
+      return {
+        or: conditions,
+      } as Where
     },
   },
   hooks: {
