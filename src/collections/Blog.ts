@@ -25,7 +25,7 @@ export const Posts: CollectionConfig = {
       // For other users, we'll add the tenant automatically in beforeChange hook
       return true
     },
-    read: async ({ req }) => {
+    read: async ({ req, id }) => {
       const isEnabled = await checkCollectionEnabled({ req, slug: 'posts' })
       if (!isEnabled) return false
 
@@ -74,6 +74,17 @@ export const Posts: CollectionConfig = {
               },
             },
           ],
+        } as Where
+      }
+
+      // If no tenant context is available (e.g. direct API access),
+      // allow access to published posts ONLY if accessing a specific ID.
+      // This prevents listing all posts from all tenants publicly.
+      if (id) {
+        return {
+          status: {
+            equals: 'published',
+          },
         } as Where
       }
 
