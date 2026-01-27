@@ -2,6 +2,11 @@ import type { PayloadRequest } from 'payload'
 
 export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => {
   const { payload } = req
+
+  if (!req.url) {
+    return new Response('Bad Request', { status: 400 })
+  }
+
   const url = new URL(req.url)
   const tenantSlug = url.searchParams.get('tenant')
   const host = req.headers.get('host')
