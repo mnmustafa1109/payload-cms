@@ -50,23 +50,24 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
   // 2. Determine Base URLs
   const protocol = req.headers.get('x-forwarded-proto') || 'https'
   
-  // A. Frontend URL (Where the user clicks)
-  // We assume tenant.domain is your Frontend (e.g. robins-c.webflow.io)
-  // If tenant.domain is missing, we fallback to the request host (which might be the API, so be careful)
+  // A. Frontend URL
+  // Logic: Strip 'https://' then strip 'payload.' to get the root domain
   let frontendBaseUrl = ''
   
   if (tenant.domain) {
-    // Ensure we don't double-add protocol if it's stored in DB
-    const domain = tenant.domain.replace(/^https?:\/\//, '')
+    // 1. Remove protocol if exists
+    let domain = tenant.domain.replace(/^https?:\/\//, '')
+    
+    // 2. Remove 'payload.' prefix (e.g. payload.robinsconsulting.com -> robinsconsulting.com)
+    domain = domain.replace(/^payload\./, '')
+    
     frontendBaseUrl = `${protocol}://${domain}`
   } else {
-    // Fallback if no domain is set in DB
+    // Fallback if no domain is set
     frontendBaseUrl = `${protocol}://${host}`
   }
 
-  // B. Media URL (Where images are hosted)
-  // Usually this is your API domain or S3 bucket URL. 
-  // Since we are running on the API, we can use the request host.
+  // B. Media URL (Used for the <image:loc> tag)
   const mediaBaseUrl = `${protocol}://${host}`
 
   const enabledCollections = (tenant.enabledCollections as string[]) || []
@@ -80,6 +81,39 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
     <priority>1.0</priority>
   </url>`)
 
+  // --- HELPER: Escape XML Characters ---
+  const safeXml = (str: string) => {
+    if (!str) return ''
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;')
+  }
+
+  // --- HELPER: Generate Image XML Block ---
+  const generateImageXml = (doc: any) => {
+    if (doc.featuredImage && typeof doc.featuredImage === 'object') {
+       // Handle absolute vs relative URLs
+       const imgUrl = doc.featuredImage.url.startsWith('http') 
+          ? doc.featuredImage.url 
+          : `${mediaBaseUrl}${doc.featuredImage.url}`
+
+       const title = safeXml(doc.title || doc.metaTitle || '')
+       // Use Meta Description or Excerpt as the Image Caption
+       const caption = safeXml(doc.metaDescription || doc.excerpt || '')
+
+       return `
+    <image:image>
+      <image:loc>${imgUrl}</image:loc>
+      <image:title>${title}</image:title>${caption ? `
+      <image:caption>${caption}</image:caption>` : ''}
+    </image:image>`
+    }
+    return ''
+  }
+
   // 3. Fetch Pages
   if (enabledCollections.includes('pages')) {
     const pages = await payload.find({
@@ -88,7 +122,7 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
         tenant: { equals: tenant.id },
       },
       limit: 5000,
-      depth: 0,
+      depth: 1, // Depth 1 to get featuredImage data
       pagination: false,
       overrideAccess: true,
     })
@@ -96,13 +130,15 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
     pages.docs.forEach((page: any) => {
       if (page.slug === 'home' || !page.slug) return
       
-      // Standard Page URL
+      const pageUrl = `${frontendBaseUrl}/${page.slug}`
+      const imageXml = generateImageXml(page)
+
       sitemapItems.push(`
   <url>
-    <loc>${frontendBaseUrl}/${page.slug}</loc>
+    <loc>${pageUrl}</loc>
     <lastmod>${new Date(page.updatedAt).toISOString()}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.8</priority>${imageXml}
   </url>`)
     })
   }
@@ -116,38 +152,15 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
         status: { equals: 'published' },
       },
       limit: 5000,
-      depth: 1, // Depth 1 needed to get Image object
+      depth: 1, // Depth 1 to get featuredImage data
       pagination: false,
       overrideAccess: true,
     })
 
     posts.docs.forEach((post: any) => {
-      // FIX 1: Update URL structure to match your Webflow pattern
-      // Old: /blog/slug
-      // New: /blogpage?slug=slug
+      // FIX: URL Structure -> /blogpage?slug=
       const postUrl = `${frontendBaseUrl}/blogpage?slug=${post.slug}`
-      
-      // FIX 2: Add Image & Title Data
-      // We use the Google Image Sitemap extension to include the title and featured image
-      let imageXml = ''
-      
-      if (post.featuredImage && typeof post.featuredImage === 'object') {
-         // Construct absolute image URL
-         // Note: If using S3 with direct public URLs, post.featuredImage.url might already be full path. 
-         // If relative, we prepend mediaBaseUrl.
-         const imgUrl = post.featuredImage.url.startsWith('http') 
-            ? post.featuredImage.url 
-            : `${mediaBaseUrl}${post.featuredImage.url}`
-
-         // Escape special characters in title for XML safety
-         const safeTitle = (post.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
-
-         imageXml = `
-    <image:image>
-      <image:loc>${imgUrl}</image:loc>
-      <image:title>${safeTitle}</image:title>
-    </image:image>`
-      }
+      const imageXml = generateImageXml(post)
 
       sitemapItems.push(`
   <url>
@@ -159,7 +172,9 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
     })
   }
 
-  // FIX 3: Add xmlns:image namespace to header
+  // 5. XML Envelope
+  // Note: Standard Sitemaps don't support <title> tags. 
+  // We use the Google Image extension to include Titles/Captions validly.
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
