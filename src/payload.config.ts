@@ -25,6 +25,7 @@ import type { Config } from './payload-types'
 import { getUserTenantIDs } from './utilities/getUserTenantIDs'
 
 import { mediaSlug, mediaWithPrefixSlug, mediaWithSignedDownloadsSlug, prefix } from './shared.js'
+import { sitemapHandler } from './endpoints/sitemap'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -56,6 +57,13 @@ export default buildConfig({
     },
   },
   cors: '*',
+  endpoints: [
+    {
+      path: '/sitemap.xml',
+      method: 'get',
+      handler: sitemapHandler,
+    },
+  ],
   collections: [Media, MediaWithPrefix, MediaWithSignedDownloads, Pages, Users, Tenants, Posts, Categories],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
