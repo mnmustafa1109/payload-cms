@@ -4,6 +4,7 @@ import * as migration_20260114_184323 from './20260114_184323';
 import * as migration_20260115_201551 from './20260115_201551';
 import * as migration_20260116_141632 from './20260116_141632';
 import * as migration_20260116_145405 from './20260116_145405';
+import * as migration_20260803_125100_add_deploy_hook_url from './20260803_125100_add_deploy_hook_url';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20260116_145405.up,
     down: migration_20260116_145405.down,
-    name: '20260116_145405'
+    name: '20260116_145405',
+  },
+  {
+    up: migration_20260803_125100_add_deploy_hook_url.up,
+    down: migration_20260803_125100_add_deploy_hook_url.down,
+    name: '20260803_125100_add_deploy_hook_url',
   },
 ];
