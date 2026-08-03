@@ -78,5 +78,14 @@ export const Tenants: CollectionConfig = {
       defaultValue: false,
       index: true,
     },
+    {
+      name: 'deployHookUrl',
+      type: 'text',
+      admin: {
+        description:
+          'Webhook URL to trigger Astro SSG rebuilds when posts are created or published',
+        position: 'sidebar',
+      },
+    },
   ],
 }

@@ -1,14 +1,143 @@
-import type { CollectionConfig, Where } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionConfig,
+  Where,
+} from 'payload'
 import { checkCollectionEnabled } from '@/access/checkCollectionEnabled'
 import { getTenantFromCookie } from '@payloadcms/plugin-multi-tenant/utilities'
 import { getCollectionIDType } from '@/utilities/getCollectionIDType'
-// 1. IMPORT ADDED HERE
 
 import { 
   lexicalEditor, 
   lexicalHTML, 
   HTMLConverterFeature 
 } from '@payloadcms/richtext-lexical'
+
+const triggerTenantDeployHook: CollectionAfterChangeHook = async ({
+  doc,
+  previousDoc,
+  operation,
+  req,
+}) => {
+  // Trigger if post is currently published, was previously published (e.g. unpublished), or newly created
+  const isPublished = doc.status === 'published'
+  const wasPublished = previousDoc?.status === 'published'
+
+  if (!isPublished && !wasPublished && operation !== 'create') {
+    return doc
+  }
+
+  // Extract tenant ID
+  const tenantId = typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant
+  if (!tenantId) return doc
+
+  try {
+    // Retrieve tenant's deployHookUrl
+    let deployHookUrl =
+      typeof doc.tenant === 'object' && doc.tenant !== null
+        ? (doc.tenant as { deployHookUrl?: string }).deployHookUrl
+        : undefined
+
+    if (!deployHookUrl) {
+      const tenant = await req.payload.findByID({
+        collection: 'tenants',
+        id: tenantId,
+      })
+      deployHookUrl = (tenant as { deployHookUrl?: string })?.deployHookUrl
+    }
+
+    // Trigger deploy hook asynchronously if present
+    if (deployHookUrl) {
+      let eventType = 'post.updated'
+      if (operation === 'create') eventType = 'post.created'
+      else if (!isPublished && wasPublished) eventType = 'post.unpublished'
+      else if (isPublished && !wasPublished) eventType = 'post.published'
+
+      req.payload.logger.info(
+        `Triggering deploy hook (${eventType}) for tenant ${tenantId} on post: "${doc.title}"`,
+      )
+
+      void fetch(deployHookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event: eventType,
+          tenant: tenantId,
+          post: {
+            id: doc.id,
+            slug: doc.slug,
+            title: doc.title,
+            status: doc.status,
+          },
+        }),
+      }).catch((err) => {
+        req.payload.logger.error(
+          `Failed to trigger deploy hook for tenant ${tenantId}: ${err}`,
+        )
+      })
+    }
+  } catch (error) {
+    req.payload.logger.error(`Error in post deploy hook: ${error}`)
+  }
+
+  return doc
+}
+
+const triggerTenantDeployHookOnDelete: CollectionAfterDeleteHook = async ({
+  doc,
+  req,
+}) => {
+  const tenantId = typeof doc.tenant === 'object' ? doc.tenant?.id : doc.tenant
+  if (!tenantId) return doc
+
+  try {
+    let deployHookUrl =
+      typeof doc.tenant === 'object' && doc.tenant !== null
+        ? (doc.tenant as { deployHookUrl?: string }).deployHookUrl
+        : undefined
+
+    if (!deployHookUrl) {
+      const tenant = await req.payload.findByID({
+        collection: 'tenants',
+        id: tenantId,
+      })
+      deployHookUrl = (tenant as { deployHookUrl?: string })?.deployHookUrl
+    }
+
+    if (deployHookUrl) {
+      req.payload.logger.info(
+        `Triggering deploy hook (post.deleted) for tenant ${tenantId} on post: "${doc.title}"`,
+      )
+
+      void fetch(deployHookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event: 'post.deleted',
+          tenant: tenantId,
+          post: {
+            id: doc.id,
+            slug: doc.slug,
+            title: doc.title,
+          },
+        }),
+      }).catch((err) => {
+        req.payload.logger.error(
+          `Failed to trigger deploy hook on delete for tenant ${tenantId}: ${err}`,
+        )
+      })
+    }
+  } catch (error) {
+    req.payload.logger.error(`Error in post delete deploy hook: ${error}`)
+  }
+
+  return doc
+}
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -89,7 +218,9 @@ export const Posts: CollectionConfig = {
         }
         return data;
       }
-    ]
+    ],
+    afterChange: [triggerTenantDeployHook],
+    afterDelete: [triggerTenantDeployHookOnDelete],
   },
   admin: {
     useAsTitle: 'title',
