@@ -172,7 +172,35 @@ export const sitemapHandler = async (req: PayloadRequest): Promise<Response> => 
     })
   }
 
-  // 5. XML Envelope
+  // 5. Fetch Events
+  if (enabledCollections.includes('events')) {
+    const events = await payload.find({
+      collection: 'events',
+      where: {
+        tenant: { equals: tenant.id },
+        status: { equals: 'published' },
+      },
+      limit: 5000,
+      depth: 1, // Depth 1 to get featuredImage data
+      pagination: false,
+      overrideAccess: true,
+    })
+
+    events.docs.forEach((event: any) => {
+      const eventUrl = `${frontendBaseUrl}/events?slug=${event.slug}`
+      const imageXml = generateImageXml(event)
+
+      sitemapItems.push(`
+  <url>
+    <loc>${eventUrl}</loc>
+    <lastmod>${new Date(event.updatedAt).toISOString()}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>${imageXml}
+  </url>`)
+    })
+  }
+
+  // 6. XML Envelope
   // Note: Standard Sitemaps don't support <title> tags. 
   // We use the Google Image extension to include Titles/Captions validly.
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

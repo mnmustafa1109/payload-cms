@@ -74,6 +74,7 @@ export interface Config {
     users: User;
     tenants: Tenant;
     posts: Post;
+    events: Event;
     categories: Category;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -89,6 +90,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     tenants: TenantsSelect<false> | TenantsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    events: EventsSelect<false> | EventsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -212,12 +214,16 @@ export interface Tenant {
    */
   slug: string;
   enabledCollections?:
-    | ('media' | 'pages' | 'posts' | 'categories' | 'media-with-prefix' | 'media-with-signed-downloads')[]
+    | ('media' | 'pages' | 'posts' | 'events' | 'categories' | 'media-with-prefix' | 'media-with-signed-downloads')[]
     | null;
   /**
    * If checked, logging in is not required to read. Useful for building public pages.
    */
   allowPublicRead?: boolean | null;
+  /**
+   * Webhook URL to trigger Astro SSG rebuilds when posts or events are created or published
+   */
+  deployHookUrl?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -321,6 +327,102 @@ export interface Category {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events".
+ */
+export interface Event {
+  id: number;
+  title: string;
+  /**
+   * Used in URLs and API routes
+   */
+  slug: string;
+  /**
+   * Event start date and time
+   */
+  startDate: string;
+  /**
+   * Event end date and time
+   */
+  endDate?: string | null;
+  /**
+   * Select event categories (e.g. Conventions)
+   */
+  category?: (number | Category)[] | null;
+  /**
+   * Short summary or teaser for the event
+   */
+  excerpt?: string | null;
+  /**
+   * Full event description and information
+   */
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  contentHtml?: string | null;
+  featuredImage?: (number | null) | Media;
+  /**
+   * Official event website URL (e.g. https://www.deliver.events/america)
+   */
+  website?: string | null;
+  /**
+   * Contact phone number (e.g. 877-603-4390)
+   */
+  phone?: string | null;
+  venue?: {
+    /**
+     * e.g. The Horseshoe Hotel
+     */
+    name?: string | null;
+    /**
+     * e.g. 3645 Las Vegas Blvd S
+     */
+    address?: string | null;
+    /**
+     * e.g. Las Vegas
+     */
+    city?: string | null;
+    /**
+     * e.g. NV
+     */
+    state?: string | null;
+    /**
+     * e.g. 89109
+     */
+    zip?: string | null;
+    /**
+     * e.g. United States
+     */
+    country?: string | null;
+  };
+  author?: (number | null) | User;
+  status: 'draft' | 'published' | 'archived';
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  /**
+   * Enter tags for SEO and categorization
+   */
+  tags?: string[] | null;
+  /**
+   * Associate this event with a specific tenant
+   */
+  tenant?: (number | null) | Tenant;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -370,6 +472,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'posts';
         value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'events';
+        value: number | Event;
       } | null)
     | ({
         relationTo: 'categories';
@@ -523,6 +629,7 @@ export interface TenantsSelect<T extends boolean = true> {
   slug?: T;
   enabledCollections?: T;
   allowPublicRead?: T;
+  deployHookUrl?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -545,6 +652,41 @@ export interface PostsSelect<T extends boolean = true> {
   metaDescription?: T;
   tags?: T;
   readingTime?: T;
+  tenant?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "events_select".
+ */
+export interface EventsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  startDate?: T;
+  endDate?: T;
+  category?: T;
+  excerpt?: T;
+  content?: T;
+  contentHtml?: T;
+  featuredImage?: T;
+  website?: T;
+  phone?: T;
+  venue?:
+    | T
+    | {
+        name?: T;
+        address?: T;
+        city?: T;
+        state?: T;
+        zip?: T;
+        country?: T;
+      };
+  author?: T;
+  status?: T;
+  metaTitle?: T;
+  metaDescription?: T;
+  tags?: T;
   tenant?: T;
   updatedAt?: T;
   createdAt?: T;

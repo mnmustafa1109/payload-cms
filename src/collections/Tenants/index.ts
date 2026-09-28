@@ -54,6 +54,10 @@ export const Tenants: CollectionConfig = {
           value: 'posts',
         },
         {
+          label: 'Events',
+          value: 'events',
+        },
+        {
           label: 'Categories',
           value: 'categories',
         },
@@ -83,7 +87,7 @@ export const Tenants: CollectionConfig = {
       type: 'text',
       admin: {
         description:
-          'Webhook URL to trigger Astro SSG rebuilds when posts are created or published',
+          'Webhook URL to trigger Astro SSG rebuilds when posts or events are created or published',
         position: 'sidebar',
       },
     },

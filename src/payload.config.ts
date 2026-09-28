@@ -17,6 +17,7 @@ import { Pages } from './collections/Pages'
 import { Tenants } from './collections/Tenants'
 import Users from './collections/Users'
 import { Posts } from './collections/Blog'
+import { Events } from './collections/Events'
 import { Categories } from './collections/Category'
 
 import { multiTenantPlugin } from '@payloadcms/plugin-multi-tenant'
@@ -64,7 +65,7 @@ export default buildConfig({
       handler: sitemapHandler,
     },
   ],
-  collections: [Media, MediaWithPrefix, MediaWithSignedDownloads, Pages, Users, Tenants, Posts, Categories],
+  collections: [Media, MediaWithPrefix, MediaWithSignedDownloads, Pages, Users, Tenants, Posts, Events, Categories],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
